@@ -2,12 +2,12 @@ class ExperienceCode:
     symbols = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789'
     symbols_to_value_table = {
         i: index-1
-        for index, i in enumerate((symbols), 1)
+        for index, i in enumerate(symbols, 1)
     }
-    value_to_symbols_table = dict(map(reversed, symbols_to_value_table.items()))
+    value_to_symbols_table = {v: k for k, v in symbols_to_value_table.items()}
 
     def __init__(self, experience_code: str) -> None:
-        
+        experience_code = experience_code.upper()
         self.experience_code = self.is_valid_experience_code(experience_code) and experience_code
 
     def __str__(self) -> str:
@@ -16,27 +16,39 @@ class ExperienceCode:
     def __int__(self) -> int:
         return self.to_int(self.experience_code)
   
-    def __add__(self, other: int) -> int:
+    def __add__(self, other: int) -> 'ExperienceCode':
         return self.to_str(int(self) + other)
 
-    def __radd__(self, other: int) -> int:
+    def __radd__(self, other: int) -> 'ExperienceCode':
         return self + other
     
-    def __sub__(self, other: int) -> int:
+    def __sub__(self, other: int) -> 'ExperienceCode':
         return self.to_str(int(self) - other)
+
+    def __eq__(self, __value: 'ExperienceCode') -> bool:
+        return int(self) == int(__value)
+
+    def __lt__(self, __value: 'ExperienceCode') -> bool:
+        return int(self) < int(__value)
+
+    def __gt__(self, __value: 'ExperienceCode') -> bool:
+        return int(self) > int(__value)
+
+    def __getitem__(self, index: int) -> str:
+        return self.experience_code[index]
 
     @staticmethod
     def to_int(experience_code) -> int:
         integer = 0
         base = len(ExperienceCode.symbols_to_value_table)
-        for character in experience_code:
+        for character in experience_code.upper().lstrip('A'):
             assert character in ExperienceCode.symbols_to_value_table, f"Invalid character: {character}"
             integer *= base
             integer += ExperienceCode.symbols_to_value_table[character]
         return integer
 
     @staticmethod
-    def to_str(int_repr: int, base: int = 35) -> str:
+    def to_str(int_repr: int, base: int = 35) -> 'ExperienceCode':
         assert int_repr >= 1, "Integer representation must be positive and non-zero."
         array = []
         while int_repr:
@@ -71,12 +83,38 @@ class ExperienceCode:
 
         return True
 
+
+class ExperienceCodeIterator:
+    def __init__(self, start: str, end: str | int = None) -> None:
+        if end is None:
+            start, end = "AAB", start
+        start_code = ExperienceCode(start)
+        if isinstance(end, int):
+            end_code = ExperienceCode.to_str(int(start_code + end))
+        else:
+            end_code = ExperienceCode(end)
+        if start_code > end_code:
+            raise ValueError(f"Start code must be less than end code: {start_code} > {end_code}")
+
+        self.start_code = start_code
+        self.end_code = end_code
+        self.current_code = self.start_code
+
+    def __iter__(self) -> 'ExperienceCodeIterator':
+        while True:
+            yield self.current_code
+            if self.current_code == self.end_code:
+                break
+            self.current_code += 1
+
+
 class Worker:
-    def __init__(self, start_code: str = None) -> None:
+    def __init__(self, start_code) -> None:
         self.start_experience = ExperienceCode(start_code) or ExperienceCode("AAB")
 
 
 if __name__ == "__main__":
-    code = ExperienceCode("AAB")
-    code += 100000
-    print(code)
+    code = ExperienceCode("ABD369")
+    print(int(code) - int(ExperienceCode("abd364")))
+
+
