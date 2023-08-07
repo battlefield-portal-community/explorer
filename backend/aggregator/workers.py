@@ -1,3 +1,6 @@
+import asyncio
+
+
 class ExperienceCode:
     symbols = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789'
     symbols_to_value_table = {
@@ -49,7 +52,8 @@ class ExperienceCode:
 
     @staticmethod
     def to_str(int_repr: int, base: int = 35) -> 'ExperienceCode':
-        assert int_repr >= 1, "Integer representation must be positive and non-zero."
+        if int_repr < 0:
+            raise ValueError("Integer representation must be positive.")
         array = []
         while int_repr:
             int_repr, value = divmod(int_repr, base)
@@ -78,34 +82,52 @@ class ExperienceCode:
         if any(character not in ExperienceCode.symbols_to_value_table for character in experience_code):
             raise ValueError(f"Experience code contains invalid characters: {experience_code}")
         
-        if ExperienceCode.to_int(experience_code) < 1:
-            raise ValueError(f"Experience code must be positive and non-zero: {experience_code},\nExperience codes start at AAB.")
+        if ExperienceCode.to_int(experience_code) < 0:
+            raise ValueError(f"Experience code must be positive and non-zero: {experience_code},\nExperience codes start at AAA.")
 
         return True
 
 
-class ExperienceCodeIterator:
-    def __init__(self, start: str, end: str | int = None) -> None:
+class ExperienceCodeBaseIterator:
+    def __init__(self, start: str, end: str | int = None, step: int = 1) -> None:
         if end is None:
             start, end = "AAB", start
         start_code = ExperienceCode(start)
         if isinstance(end, int):
-            end_code = ExperienceCode.to_str(int(start_code + end))
+            if step > 0:
+                end_code = ExperienceCode.to_str(int(start_code + end))
+            else:
+                end_code = ExperienceCode.to_str(int(start_code - end))
         else:
             end_code = ExperienceCode(end)
-        if start_code > end_code:
+
+        if step > 0 and start_code > end_code:
             raise ValueError(f"Start code must be less than end code: {start_code} > {end_code}")
+        elif step < 0 and start_code < end_code:
+            raise ValueError(f"Start code must be greater than end code: {start_code} < {end_code}")
 
         self.start_code = start_code
         self.end_code = end_code
         self.current_code = self.start_code
+        self.step = step
 
+
+class ExperienceCodeIterator(ExperienceCodeBaseIterator):
     def __iter__(self) -> 'ExperienceCodeIterator':
-        while True:
-            yield self.current_code
-            if self.current_code == self.end_code:
-                break
-            self.current_code += 1
+        return self
+
+    def __next__(self):
+        if self.step < 0 and self.current_code < self.end_code:
+            raise StopIteration
+        if self.current_code == self.end_code:
+            raise StopIteration
+        _ = self.current_code
+        try:
+            self.current_code += self.step
+        except ValueError:
+            raise StopIteration
+        return _
+
 
 
 class Worker:
@@ -114,7 +136,6 @@ class Worker:
 
 
 if __name__ == "__main__":
-    code = ExperienceCode("ABD369")
-    print(int(code) - int(ExperienceCode("abd364")))
-
-
+    code = ExperienceCodeIterator("abd369", "AAA", -1)
+    for i in code:
+        print(i)
