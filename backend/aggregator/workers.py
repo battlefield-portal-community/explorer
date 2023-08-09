@@ -1,4 +1,6 @@
 import asyncio
+import random
+
 from rich.text import Text
 from rich.live import Live
 from rich.table import Table
@@ -159,15 +161,27 @@ class AsyncExperienceCodeIterator(ExperienceCodeIterator):
 
 
 class Worker:
-    def __init__(self, start_code, chunk_size: int = 10) -> None:
+    def __init__(self, start_code, end_code: str = None, chunk_size: int = 10) -> None:
+        if end_code is None:
+            end_code = "AAA"
+
         self.start_code = ExperienceCode(start_code)
+        self.end_code = ExperienceCode(end_code)
+
+        self.mid_code = self.end_code
+
+        if self.end_code > self.start_code:
+            raise ValueError(f"Start code must be greater than end code: {start_code}, {end_code}")
+
         self.current_code = self.start_code
         self.base_api_url = "https://api.gametools.network/bf2042/playground/"
         self.session = None
         self.current_status = {}
         self.live_display = None
-        self.range = chunk_size
-        self.chunk_size = chunk_size
+        self.chunk_size = min(
+            int(self.start_code) - int(self.end_code),
+            chunk_size
+        )
 
     def start(self):
         loop = asyncio.get_event_loop()
@@ -178,24 +192,36 @@ class Worker:
         async with aiohttp.ClientSession() as session:
             self.set_current_status()
             with Live(self.gen_table(), refresh_per_second=10, vertical_overflow='visible') as live_display:
-                while self.range > 0:
+                live_display.console.print(f"Fetching playgrounds from {self.current_code} to {self.end_code}")
+                while self.chunk_size > 0:
                     tasks = [self.get_playground(code, session) for code in self.current_status]
                     for task in asyncio.as_completed(tasks):
                         self.update_table(live_display, *(await task))
 
-                    delta = int(self.current_code) - self.range
-                    if delta <= 0:
+                    delta = int(self.current_code) - self.chunk_size
+                    if delta <= int(self.end_code):
+                        live_display.update(self.gen_table())
                         break
+
                     self.current_code = ExperienceCode.to_str(delta)
-                    if int(self.current_code) < self.range:
-                        self.range = int(self.current_code)
+
+                    self.chunk_size = min(
+                        (int(self.current_code) - int(self.end_code)),
+                        int(self.current_code),
+                        self.chunk_size,
+                    )
+
                     self.set_current_status()
 
     def set_current_status(self):
         # rich.print(f"Current Code: {self.current_code}, range {self.range}")
         self.current_status = {
             code: Text.assemble(("pending", "brown")) for code in
-            AsyncExperienceCodeIterator(str(self.current_code), self.range, -1)
+            AsyncExperienceCodeIterator(
+                str(self.current_code),
+                self.chunk_size,
+                -1
+            )
         }
 
     def gen_table(self):
@@ -212,7 +238,7 @@ class Worker:
         display.update(self.gen_table())
 
     async def get_playground(self, code: ExperienceCode, session):
-        # await asyncio.sleep(random.randint(1, 2))
+        # await asyncio.sleep(random.randint(1,2))
         # return code, False
         url = f"{self.base_api_url}?experiencecode={code}"
         resp = await session.get(url)
@@ -224,6 +250,7 @@ class Worker:
 
 
 if __name__ == "__main__":
-    worker = Worker("AAZ", chunk_size=3)
+    worker = Worker("AA9", chunk_size=9)
     worker.start()
-    # print(int(ExperienceCode("AAF")) - 10)
+
+    # print(int(ExperienceCode("AA9")), int(ExperienceCode("AAP")))
