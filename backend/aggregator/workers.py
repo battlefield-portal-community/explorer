@@ -1,5 +1,4 @@
 import asyncio
-import random
 
 from rich.text import Text
 from rich.live import Live
