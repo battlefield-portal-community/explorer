@@ -75,8 +75,8 @@ class ExperienceCode:
     def is_valid_experience_code(experience_code: str) -> bool:
         """
         Check if the experience code is valid.
-        
-        Returns: 
+
+        Returns:
         bool: True if the experience code is valid, False otherwise.
         """
 
