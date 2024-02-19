@@ -32,3 +32,17 @@ A frontend to interact with the API.
 ### Todo
 - [ ] Add more details
 - [ ] decide on the tech stack
+
+
+## Local Development
+### Prerequisites
+- populate the `.env` file with the required environment variables
+  - ```
+    DB_CONNECTION_URL=
+    MESSAGE_BROKER_URL=
+    POSTGRES_DB=
+    POSTGRES_USER=
+    POSTGRES_PASSWORD=
+    ```
+- Install docker-compose
+- run `docker-compose -f docker-compose -f <app>/docker-compose.yml up -d` to start the respective app.
