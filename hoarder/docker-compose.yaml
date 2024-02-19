@@ -1,0 +1,16 @@
+version: '3.9'
+
+services:
+
+  dragonfly:
+    image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
+    ulimits:
+      memlock: -1
+    ports:
+      - "6379:6379"
+    network_mode: "host"
+    volumes:
+      - dragonflydata:/data
+
+volumes:
+  dragonflydata:
